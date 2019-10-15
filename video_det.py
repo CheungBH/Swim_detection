@@ -32,8 +32,6 @@ while True:
             x, y, w, h = cv2.boundingRect(c)
             cv2.rectangle(frame, (x, y + water_top), (x + w, y + water_top + h), (0, 255, 0), 2)
             rects = [x, y, x + w, y + water_top + h]
-            human = Utils.cut_image(frame, top=x, bottom=x+w, left=y, )
-            cv2.imwrite()
         cv2.imshow("detection", frame)
         #cv2.imwrite(os.path.join("frame", "{}.jpg".format(cnt)), frame)
         if "multiple" in video_path:
