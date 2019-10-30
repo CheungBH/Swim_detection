@@ -3,7 +3,7 @@ from utils.utils import Utils
 import numpy as np
 
 water_top = 105
-standard_frame = cv2.imread("img/origin.jpg")
+standard_frame = cv2.imread("img/origin_side.jpg")
 
 
 def cut_image(img, bottom=0, top=0, left=0, right=0):

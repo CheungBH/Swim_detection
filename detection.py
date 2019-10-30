@@ -2,67 +2,96 @@ import cv2
 from utils.utils import Utils
 import os
 import numpy as np
+from config import config
 
-water_top = 105
+water_top = config.water_top
 write = False
+show = False
 
-img_num = 233
-detect_img = "img/multiple.jpg"
-origin_frame = "img/origin.jpg"
+folder_name = "drown1"
+main_path = os.path.join("processor", folder_name)
+files = [name for name in os.listdir(main_path) if os.path.isdir(os.path.join(main_path, name))]
+origin_frame = "processor/{}/origin.jpg".format(folder_name)
 standard_frame = cv2.imread(origin_frame)
 
-frame = cv2.imread(detect_img)
-frame = cv2.resize(frame, (standard_frame.shape[1], standard_frame.shape[0]))
-diff = cv2.absdiff(frame, standard_frame)
-cv2.imshow("diff", diff)
-cv2.moveWindow("diff", 0, 0)
+# files = [282]
+# img_num = 172
+standard_frame = cv2.resize(standard_frame, config.frame_shape)
+for img_num in files:
+    detect_img = "processor/{0}/{1}/{1}.jpg".format(folder_name, img_num)
 
-cut_diff = Utils.cut_image(diff, top=water_top)
-cv2.imshow("cut", cut_diff)
-cv2.moveWindow("cut", 640, 0)
+    frame = cv2.imread(detect_img)
+    frame = cv2.resize(frame, (standard_frame.shape[1], standard_frame.shape[0]))
+    diff = cv2.absdiff(frame, standard_frame)
 
-blur = cv2.blur(cut_diff, (7, 7))
-cv2.imshow("blur", blur)
-cv2.moveWindow("blur", 1280, 0)
+    cut_diff = Utils.cut_image(diff, top=water_top)
+    cut_img = Utils.cut_image(frame, top=water_top)
+    con_frame = cut_img
+    real_con_frame = con_frame
 
-enhance_kernel = np.array([[0, -1, 0], [0, 5, 0], [0, -1, 0]])
-imageEnhance = cv2.filter2D(blur, -1, enhance_kernel)
-cv2.imshow("laplancian", imageEnhance)
-cv2.moveWindow("laplancian", 640, 350)
+    blur = cv2.blur(cut_diff, config.blur_kernel)
 
-hsv = cv2.cvtColor(imageEnhance, cv2.COLOR_BGR2HSV)
+    imageEnhance = cv2.filter2D(blur, -1, config.enhance_kernel)
 
-lower = np.array([0, 0, 46])
-upper = np.array([180, 255, 255])
+    hsv = cv2.cvtColor(imageEnhance, cv2.COLOR_BGR2HSV)
 
-thresh = cv2.inRange(hsv, lowerb=lower, upperb=upper)
-cv2.imshow("thresh", thresh)
-cv2.moveWindow("thresh", 0, 700)
+    thresh = cv2.inRange(hsv, lowerb=config.hsv_lower, upperb=config.hsv_upper)
 
-dilate_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-dilation = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, dilate_kernel)
-cv2.imshow("dilation", dilation)
-cv2.moveWindow("dilation", 640, 700)
+    dilate_kernel = cv2.getStructuringElement(config.dilation_method[0], config.dilation_kernel)
+    dilation = cv2.morphologyEx(thresh, config.dilation_method[1], dilate_kernel)
 
-contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-stored = [idx for idx in range(len(contours)) if len(contours[idx]) > 80]
-real_con = [contours[i] for i in stored]
+    contours, hierarchy = cv2.findContours(dilation, config.contour_method[0], config.contour_method[1])
+    stored = [idx for idx in range(len(contours)) if len(contours[idx]) > config.real_con_len]
+    real_con = [contours[i] for i in stored]
 
-for c in real_con:
-    x, y, w, h = cv2.boundingRect(c)
-    cv2.rectangle(frame, (x, y + water_top), (x + w, y + water_top + h), (0, 255, 0), 2)
+    # cv2.imshow("img", frame)
+    # cv2.waitKey(0)
+    for idx, c in enumerate(real_con):
+        x, y, w, h = cv2.boundingRect(c)
+        cv2.rectangle(frame, (x, y + water_top), (x + w, y + water_top + h), (0, 255, 0), 2)
+        # cv2.imwrite("square_{}".format(idx), Utils.cut_image(frame, ))
 
-if write:
-    out_folder = "mid/{}".format(img_num)
-    os.makedirs(out_folder, exist_ok=True)
-    cv2.imwrite("{}/diff.jpg".format(out_folder), diff)
-    cv2.imwrite("{}/cut_diff.jpg".format(out_folder), cut_diff)
-    cv2.imwrite("{}/blur.jpg".format(out_folder), blur)
-    cv2.imwrite("{}/enhance.jpg".format(out_folder), imageEnhance)
-    cv2.imwrite("{}/thresh.jpg".format(out_folder), thresh)
-    cv2.imwrite("{}/opening.jpg".format(out_folder), dilation)
-    cv2.imwrite("{}/result.jpg".format(out_folder), frame)
+    cv2.drawContours(real_con_frame, real_con, -1, (0, 0, 255), 3, lineType=cv2.LINE_AA)
+    cv2.drawContours(con_frame, real_con, -1, (0, 0, 255), 3, lineType=cv2.LINE_AA)
 
-cv2.imshow("detection", frame)
-cv2.moveWindow("detection", 1280, 700)
-cv2.waitKey(0)
+    if show:
+        cv2.imshow("diff", diff)
+        cv2.moveWindow("diff", 0, 0)
+
+        cv2.imshow("cut", cut_diff)
+        cv2.moveWindow("cut", 640, 0)
+
+        cv2.imshow("blur", blur)
+        cv2.moveWindow("blur", 1280, 0)
+
+        cv2.imshow("laplancian", imageEnhance)
+        cv2.moveWindow("laplancian", 640, 350)
+
+        cv2.imshow("thresh", thresh)
+        cv2.moveWindow("thresh", 0, 700)
+
+        cv2.imshow("dilation", dilation)
+        cv2.moveWindow("dilation", 640, 700)
+
+        cv2.imshow("contour", con_frame)
+
+        cv2.imshow("detection", frame)
+        cv2.moveWindow("detection", 1280, 600)
+
+        cv2.waitKey(0)
+
+    if write:
+        out_folder = "processor/{}/{}".format(folder_name, img_num)
+        os.makedirs(out_folder, exist_ok=True)
+        cv2.imwrite("{}/1_diff.jpg".format(out_folder), diff)
+        cv2.imwrite("{}/2_cut_diff.jpg".format(out_folder), cut_diff)
+        cv2.imwrite("{}/3_blur.jpg".format(out_folder), blur)
+        cv2.imwrite("{}/4_enhance.jpg".format(out_folder), imageEnhance)
+        cv2.imwrite("{}/5_thresh.jpg".format(out_folder), thresh)
+        cv2.imwrite("{}/6_dilation.jpg".format(out_folder), dilation)
+        cv2.imwrite("{}/7_contour.jpg".format(out_folder), con_frame)
+        cv2.imwrite("{}/8_real_contour.jpg".format(out_folder), real_con_frame)
+        cv2.imwrite("{}/9_result.jpg".format(out_folder), frame)
+
+
+
