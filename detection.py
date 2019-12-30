@@ -1,23 +1,24 @@
 import cv2
 from utils.utils import Utils
 import os
-import numpy as np
 from config import config
 
 water_top = config.water_top
-write = False
+write = True
 show = False
 
-folder_name = "drown1"
+folder_name = "new1"
 main_path = os.path.join("processor", folder_name)
 files = [name for name in os.listdir(main_path) if os.path.isdir(os.path.join(main_path, name))]
 origin_frame = "processor/{}/origin.jpg".format(folder_name)
 standard_frame = cv2.imread(origin_frame)
+standard_frame = cv2.resize(standard_frame, config.frame_shape)
 
-# files = [282]
-# img_num = 172
+# files = [34]
+
 standard_frame = cv2.resize(standard_frame, config.frame_shape)
 for img_num in files:
+    print('Processing img {}'.format(img_num))
     detect_img = "processor/{0}/{1}/{1}.jpg".format(folder_name, img_num)
 
     frame = cv2.imread(detect_img)
@@ -35,8 +36,11 @@ for img_num in files:
 
     hsv = cv2.cvtColor(imageEnhance, cv2.COLOR_BGR2HSV)
 
-    thresh = cv2.inRange(hsv, lowerb=config.hsv_lower, upperb=config.hsv_upper)
+    # thresh_black = cv2.inRange(hsv, lowerb=config.hsv_lower_black, upperb=config.hsv_upper_black)
+    # thresh_red = cv2.inRange(hsv, lowerb=config.hsv_lower_red, upperb=config.hsv_upper_red)
+    # thresh = cv2.bitwise_and(thresh_black, thresh_red, dst=None, mask=None)
 
+    thresh = cv2.inRange(hsv, lowerb=config.hsv_lower_black, upperb=config.hsv_upper_black)
     dilate_kernel = cv2.getStructuringElement(config.dilation_method[0], config.dilation_kernel)
     dilation = cv2.morphologyEx(thresh, config.dilation_method[1], dilate_kernel)
 
@@ -87,11 +91,13 @@ for img_num in files:
         cv2.imwrite("{}/2_cut_diff.jpg".format(out_folder), cut_diff)
         cv2.imwrite("{}/3_blur.jpg".format(out_folder), blur)
         cv2.imwrite("{}/4_enhance.jpg".format(out_folder), imageEnhance)
+        # cv2.imwrite("{}/5_thresh_black.jpg".format(out_folder), thresh_black)
+        # cv2.imwrite("{}/5_thresh_red.jpg".format(out_folder), thresh_red)
         cv2.imwrite("{}/5_thresh.jpg".format(out_folder), thresh)
         cv2.imwrite("{}/6_dilation.jpg".format(out_folder), dilation)
         cv2.imwrite("{}/7_contour.jpg".format(out_folder), con_frame)
-        cv2.imwrite("{}/8_real_contour.jpg".format(out_folder), real_con_frame)
-        cv2.imwrite("{}/9_result.jpg".format(out_folder), frame)
+        cv2.imwrite("{}/7_real_contour.jpg".format(out_folder), real_con_frame)
+        cv2.imwrite("{}/8_result.jpg".format(out_folder), frame)
 
 
 
