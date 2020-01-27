@@ -33,6 +33,7 @@ class Utils(object):
         return np.asarray(img[top: height - bottom, left: width - right])
 
 
+
 if __name__ == '__main__':
     U = Utils()
     vec1, vec2 = [2, 2], [-1, -1]
